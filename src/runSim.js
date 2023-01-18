@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import {drawTheta, drawVelocity} from "./makeGraphs.js";
 import {updateVals, getGraphData} from "./rk4functions.js";
-
+import * as d3 from "https://esm.run/d3"; 
+import { simData } from './simData.js';
 export const context = {runloop: false};
 export let nextFrameStatic = null;
 export let nextFrameVariable = null;
@@ -10,10 +11,16 @@ export let nextFrameVariable = null;
 
 
 export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
+    //TODO:
+    //Antiaialasing or make the hoop crisp, add diffuse lighting so hoop and center rod look cylyndrical, make graph names be above graphs
 
     //Cancels the previous animation render loop of either the static or variable equation draw
     if (useEval){
-        if (nextFrameVariable != null) cancelAnimationFrame(nextFrameVariable);
+      
+        if (nextFrameVariable != null) {
+          console.log("true")
+          cancelAnimationFrame(nextFrameVariable)};
+        
     } else{
         if (nextFrameStatic != null) cancelAnimationFrame(nextFrameStatic);
         }
@@ -28,7 +35,7 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
 
 
   //create camera and renderer
-  const renderer = new THREE.WebGLRenderer({canvas});
+  const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
   renderer.setClearColor( 0xffffff, 0);
   const viewSize = canvas.clientWidth;
   const aspectRatio = canvas.clientWidth/canvas.clientHeight;
@@ -43,7 +50,7 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
   let radius = Number(document.getElementById("radius").value);
   let tube = 3;
   let radialSegments = 16; 
-  let tubularSegments = 81;
+  let tubularSegments = 50;
   let arc = 2*Math.PI;
   let omega = Number(document.getElementById("omega").value);
   let g = Number(document.getElementById("gravity").value);
@@ -53,25 +60,45 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
   let simSpeed = Number(document.getElementById("simSpeed").value);
   let graphUpdateInterval = Number(document.getElementById("graphint").value);
   let graphLen = Number(document.getElementById("graphlen").value);
+  let originalLen = graphLen;
   const trailLen = Number(document.getElementById("trailLen").value);
   let project = document.getElementById("projection").checked;
+  let wrap = document.getElementById("wrap").checked;
 
 
-
+  const lightFront = new THREE.PointLight( 0xffffff, 2, 0 );
+  lightFront.position.set( 0, 0, 10000 );
+  scene.add( lightFront );
+  // const lightBack = new THREE.PointLight( 0xffffff, 5, 0 );
+  // lightBack.position.set( 0, 0, -10000 );
+  // scene.add( lightBack );
   const geometryHoop = new THREE.TorusGeometry(100,tube,radialSegments,tubularSegments, arc);
-  const materialHoop = new THREE.MeshBasicMaterial({color: 0x44aa88}); 
+  const materialHoop = new THREE.MeshLambertMaterial({color: 0x44aa88}); 
   const geometryHoop2 = new THREE.TorusGeometry(100,tube*1.05,radialSegments,tubularSegments, arc/2);
   const hoop = new THREE.Mesh(geometryHoop, materialHoop);
   scene.add(hoop);
   const geometryCenter = new THREE.SphereGeometry( 2, 32, 16 );
-  const materialCenter = new THREE.MeshBasicMaterial( { color: 0xffff00 } );
+  const materialCenter = new THREE.MeshLambertMaterial( { color: 0xffff00 } );
   const center = new THREE.Mesh( geometryCenter, materialCenter );
   scene.add( center );
-  const geometryBall = new THREE.SphereGeometry( 5, 5,5 );
+  const geometryBall = new THREE.SphereGeometry( 6, 5,5 );
   const materialBall = new THREE.MeshBasicMaterial( { color: 0xff0000} );
   const ball = new THREE.Mesh( geometryBall, materialBall );
   scene.add( ball );
-
+  const lineMaterial = new THREE.MeshLambertMaterial({color: "red"});
+  const points = [];
+  points.push( new THREE.Vector3( 0, 120, 0 ) );
+  points.push( new THREE.Vector3( 0, 0, 0 ) );
+  points.push( new THREE.Vector3( 0, -120, 0 ) );
+  var tubeGeometry = new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3(points),
+    512,
+    2,
+    12, 
+    false 
+  );
+  const line = new THREE.Line( tubeGeometry, lineMaterial );
+  scene.add(line);
 
 
 
@@ -79,7 +106,7 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
   let balls = [];
   let ballsCords = [];
   for (let i = 0; i < trailLen; i++) {
-    balls.push(new THREE.Mesh( new THREE.SphereGeometry( i/trailLen*5, 5,5 ), new THREE.MeshBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0+i/trailLen} )));
+    balls.push(new THREE.Mesh( new THREE.SphereGeometry( i/trailLen*6, 5,5 ), new THREE.MeshBasicMaterial( { color: 0xff0000, transparent: true, opacity: 0+i/trailLen} )));
     ballsCords.push(0);
   }
   balls.forEach(e=>scene.add(e));
@@ -87,44 +114,68 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
   prevCords.length = trailLen; prevCords.fill(0);
 
   //let funcID = Math.random(); // use this if need to check to see which function is doing what or if the function isnt correctly being canceled
-  
+  let thetaGraph;
+  let velocityGraph;
 
   //gets data for graph for d3 graphs and then graphs them for the correct simulation
-  let graphData = getGraphData(graphUpdateInterval, velocity, angle, omega, radius, g, k, equations, useEval, graphLen);
+  let graphData = new simData(graphUpdateInterval);
+  graphData = getGraphData(graphUpdateInterval, velocity, angle, omega, radius, g, k, equations, useEval, graphLen, graphData, 0, wrap);
   if (thetaDivId === "variableSim-theta"){
-  drawTheta(graphData, graphLen, thetaDivId, "inputed");
-  drawVelocity(graphData, graphLen, velocityDivId, "inputed");
+  thetaGraph = drawTheta(graphData, graphLen, thetaDivId, "test", [0,0]);
+  velocityGraph = drawVelocity(graphData, graphLen, velocityDivId, "test", [0,0]);
 } else{
-  drawTheta(graphData, graphLen, thetaDivId, "actual");
-  drawVelocity(graphData, graphLen, velocityDivId, "actual");
-
+  thetaGraph = drawTheta(graphData, graphLen, thetaDivId, "reference", [0,0]);
+  velocityGraph = drawVelocity(graphData, graphLen, velocityDivId, "reference", [0,0]);
 }
-
+  
   let timer = 0;
   let lastTime = 0;
-  let firstIteration = true;
+  let firstIteration = 0;
+  let timerThreshold = false;
 
   renderer.render(scene, camera);
   function render(time){ // find delta t between animations and plug in as h in rk4
-    //console.log(funcID);
-    if (firstIteration){
+    firstIteration++;
+    if (window.play && (window.RunTest || !useEval)){
+      
+      //console.log(funcID);
+    let dt = ((time - lastTime) * simSpeed/ 1000);
+    if (firstIteration < 3){ //this exists because w/o it the second frame's dt is unusually high and causes the simulation and graph to start at a later point
       lastTime = time;
-      firstIteration = false;
+      dt = 0;
     }
 
-    //hoop rotation, grab new data from rk4, adjust angle to whithin 0-6.28 rads
-    let dt = ((time - lastTime) *simSpeed/ 1000);
+    
     timer += dt;
     lastTime = time;
-    let data = updateVals(dt, velocity, angle, omega, radius, g, k, equations, useEval);
-    angle = data[0];
-    angle = angle%(2*Math.PI);
-    if (angle < 0){
-      angle = 2*Math.PI - Math.abs(angle)
-    }
-    velocity = data[1];
+    angle = graphData.getTheta(timer);
+    velocity = graphData.getVelocity(timer);
+
     hoop.rotation.y += omega*dt;
+    if(timer < graphLen){
+      let ballAngle = graphData.getTheta(timer);
+      let ballVelocity = graphData.getVelocity(timer);
+      updateBallGraph(timer, ballAngle, ballVelocity, graphLen, thetaGraph, velocityGraph, graphData);
+    } else {
+      graphLen = graphLen + originalLen; 
+      getGraphData(graphUpdateInterval, velocity, angle, omega, radius, g, k, equations, useEval, graphLen, graphData, timer, wrap);
+      //console.log(graphData.data.length);
+      if (thetaDivId === "variableSim-theta"){
+        document.getElementById("variableSim-theta").innerHTML = "";
+        document.getElementById("variableSim-velocity").innerHTML = "";
+        thetaGraph = drawTheta(graphData, graphLen, thetaDivId, "test");
+        velocityGraph = drawVelocity(graphData, graphLen, velocityDivId, "test");
+      } else{
+        document.getElementById("staticSim-theta").innerHTML = "";
+        document.getElementById("staticSim-velocity").innerHTML = "";
+        thetaGraph = drawTheta(graphData, graphLen, thetaDivId, "reference");
+        velocityGraph = drawVelocity(graphData, graphLen, velocityDivId, "reference");
+      }
+      //updateGraphData(graphLen, thetaGraph, velocityGraph, graphData);
+      updateBallGraph(timer, angle, velocity, graphLen, thetaGraph, velocityGraph, graphData);
+    }
     
+ 
 
     //takes care of ball trail, and whether or not its projected on the hoop
     if (project){
@@ -149,6 +200,11 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
     
     //update time on page
     document.getElementById("time").innerHTML = timer.toFixed(3);
+  } else {
+    lastTime = time;
+
+  }
+    
     renderer.render(scene,camera);
 
 
@@ -166,8 +222,88 @@ export function draw(equations, useEval, thetaDivId, velocityDivId, ) {
     }
   
 }
+
 function getBallPos(angle,radius){
   let x = radius*Math.cos(angle);
   let y = radius*Math.sin(angle);
 return [x,y];
 }
+
+function updateBallGraph(timer, angle, velocity, graphLen, thetaGraph, velocityGraph, graphData){
+  if (!(timer == null) && !(angle == null)) {
+    const x = d3.scaleLinear()
+      .domain([0,graphLen])
+      .range([ 0, 210]);
+
+      const minYT = d3.min(graphData.data, (d) => d.theta)
+      const maxYT = d3.max(graphData.data, (d) => d.theta)
+      const minYV = d3.min(graphData.data, (d) => d.velocity)
+      const maxYV = d3.max(graphData.data, (d) => d.velocity)
+      const y = d3.scaleLinear()
+      .domain([maxYT, minYT])
+      .range([ 0, 260 ]);
+
+      const yV = d3.scaleLinear()
+      .domain([maxYV, minYV])
+      .range([ 0, 260 ]);
+
+    thetaGraph.selectAll("circle").remove();
+    thetaGraph.selectAll("dot")
+      .data([50,50])
+      .enter().append("circle")
+        .attr("r", 3.5)
+        .attr("cx", x(timer))
+        .attr("cy", y(angle))
+        .attr("fill", "red")
+        .attr("stroke", "red")
+
+    velocityGraph.selectAll("circle").remove();
+    velocityGraph.selectAll("dot")
+      .data([50,50])
+      .enter().append("circle")
+        .attr("r", 3.5)
+        .attr("cx", x(timer))
+        .attr("cy", yV(velocity))
+        .attr("fill", "red")
+        .attr("stroke", "red")
+    }
+}
+
+// function updateGraphData(graphLen, thetaGraph, velocityGraph, graphData){
+//       const margin = {top: 10, right: 30, bottom: 30, left: 60},
+//       width = 300 - margin.left - margin.right,
+//       height = 300 - margin.top - margin.bottom;
+
+
+//       const minY = d3.min(graphData, (d) => d[2])
+//       const maxY = d3.max(graphData, (d) => d[2])
+//       // Add X axis --> it is a date format
+//       const x = d3.scaleLinear()
+//         .domain([0,graphLen])
+//         .range([ 0, width]);
+//         thetaGraph.selectAll("g").remove();
+//         thetaGraph.append("g")
+//         .attr("transform", `translate(0, ${height})`)
+//         .call(d3.axisBottom(x));
+  
+//       // Add Y axis
+//       const y = d3.scaleLinear()
+//         .domain([minY, maxY])
+//         .range([ height, 0 ]);
+//         thetaGraph.append("g")
+//         .call(d3.axisLeft(y));
+  
+      
+  
+//       // Add the line
+//       thetaGraph
+//         .append("path")
+//         .datum(graphData)
+//         .attr("fill", "none")
+//         .attr("stroke", "steelblue")
+//         .attr("stroke-width", 1.5)
+//         .attr("d", d3.line()
+//           .x(function(d) { return x(d[0]) })
+//           .y(function(d) { return y(d[2]) })
+//           )
+// }

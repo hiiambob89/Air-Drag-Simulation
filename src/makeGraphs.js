@@ -1,4 +1,4 @@
-import * as d3 from "https://cdn.skypack.dev/d3@7";
+import * as d3 from "https://esm.run/d3";
 
 
 export function drawTheta(globalData,graphLen,divID,type){
@@ -16,7 +16,8 @@ export function drawTheta(globalData,graphLen,divID,type){
       .attr("transform", `translate(${margin.left},${margin.top})`);
   
   //Read the data
-  
+      const minY = d3.min(globalData.data, (d) => d.theta)
+      const maxY = d3.max(globalData.data, (d) => d.theta)
       // Add X axis --> it is a date format
       const x = d3.scaleLinear()
         .domain([0,graphLen])
@@ -27,23 +28,22 @@ export function drawTheta(globalData,graphLen,divID,type){
   
       // Add Y axis
       const y = d3.scaleLinear()
-        .domain([0, 6.28])
+        .domain([minY, maxY])
         .range([ height, 0 ]);
       svg.append("g")
         .call(d3.axisLeft(y));
   
       
-  
       // Add the line
       svg
         .append("path")
-        .datum(globalData)
+        .datum(globalData.data)
         .attr("fill", "none")
         .attr("stroke", "steelblue")
         .attr("stroke-width", 1.5)
         .attr("d", d3.line()
-          .x(function(d) { return x(d[0]) })
-          .y(function(d) { return y(d[1]) })
+          .x(function(d) { return x(d.time) })
+          .y(function(d) { return y(d.theta) })
           )
       svg.append("text")
       .attr("transform", "rotate(-90)")
@@ -60,10 +60,12 @@ export function drawTheta(globalData,graphLen,divID,type){
   
       svg.append("text")
       .attr("x", (height/2.5))
-      .attr("y", 20)
+      .attr("y", 2)
       .style("text-anchor", "middle")
       .style("font-size", "15px")
-      .text(`Theta over Time: ${type} eqn`)
+      .text(`θ over time: ${type} eqn`)
+    
+      return svg;
   }
   
   
@@ -82,7 +84,8 @@ export function drawTheta(globalData,graphLen,divID,type){
       .attr("transform", `translate(${margin.left},${margin.top})`);
   
   //Read the data
-  
+  const minY = d3.min(globalData.data, (d) => d.velocity)
+  const maxY = d3.max(globalData.data, (d) => d.velocity)
       // Add X axis --> it is a date format
       const x = d3.scaleLinear()
         .domain([0,graphLen])
@@ -93,7 +96,7 @@ export function drawTheta(globalData,graphLen,divID,type){
   
       // Add Y axis
       const y = d3.scaleLinear()
-        .domain([-10, 10])
+        .domain([minY, maxY])
         .range([ height, 0 ]);
       svg.append("g")
         .call(d3.axisLeft(y));
@@ -103,13 +106,13 @@ export function drawTheta(globalData,graphLen,divID,type){
       // Add the line
       svg
         .append("path")
-        .datum(globalData)
+        .datum(globalData.data)
         .attr("fill", "none")
         .attr("stroke", "steelblue")
         .attr("stroke-width", 1.5)
         .attr("d", d3.line()
-          .x(function(d) { return x(d[0]) })
-          .y(function(d) { return y(d[2]) })
+          .x(function(d) { return x(d.time) })
+          .y(function(d) { return y(d.velocity) })
           )
   
           svg.append("text")
@@ -127,8 +130,10 @@ export function drawTheta(globalData,graphLen,divID,type){
   
       svg.append("text")
       .attr("x", (height/2.5))
-      .attr("y", 20)
+      .attr("y", 2)
       .style("text-anchor", "middle")
       .style("font-size", "15px")
-      .text(`Velocity over Time: ${type} eqn`)
+      .text(`v over time: ${type} eqn`)
+
+      return svg;
   }
