@@ -36,12 +36,13 @@ export function updateVals(dt, variables, equations, useEval){
   function derivsEval(t,y,dydt, variables, equations){
     try{
       const xdot = globalThis.window.evaluatex(equations.xdot, {m:variables.m,
-                                                                g:variables.g,
-                                                                c:variables.c,
-                                                                x:variables.x,
-                                                                y:variables.y,
-                                                                vx:variables.vx,
-                                                                vy:variables.vy}, {latex:true});
+        g:variables.g,
+        c:variables.c,
+        x:variables.y[0],
+        y:variables.y[1],
+        vx:variables.y[2],
+        vy:variables.y[3]}, {latex:true});
+
       dydt[0]= xdot({});
       } catch (err){
         //console.log(err);
@@ -50,12 +51,13 @@ export function updateVals(dt, variables, equations, useEval){
 
       try{
         const ydot = globalThis.window.evaluatex(equations.ydot, {m:variables.m,
-                                                                  g:variables.g,
-                                                                  c:variables.c,
-                                                                  x:variables.x,
-                                                                  y:variables.y,
-                                                                  vx:variables.vx,
-                                                                  vy:variables.vy}, {latex:true});
+          g:variables.g,
+          c:variables.c,
+          x:variables.y[0],
+          y:variables.y[1],
+          vx:variables.y[2],
+          vy:variables.y[3]}, {latex:true});
+
         dydt[0]= ydot({});
         } catch (err){
           //console.log(err);
@@ -64,12 +66,12 @@ export function updateVals(dt, variables, equations, useEval){
 
         try{
           const vxdot = globalThis.window.evaluatex(equations.vxdot, {m:variables.m,
-                                                                    g:variables.g,
-                                                                    c:variables.c,
-                                                                    x:variables.x,
-                                                                    y:variables.y,
-                                                                    vx:variables.vx,
-                                                                    vy:variables.vy}, {latex:true});
+                                                                g:variables.g,
+                                                                c:variables.c,
+                                                                x:variables.y[0],
+                                                                y:variables.y[1],
+                                                                vx:variables.y[2],
+                                                                vy:variables.y[3]}, {latex:true});
           dydt[0]= vxdot({});
           } catch (err){
             //console.log(err);
@@ -78,12 +80,12 @@ export function updateVals(dt, variables, equations, useEval){
 
           try{
             const vydot = globalThis.window.evaluatex(equations.vydot, {m:variables.m,
-                                                                      g:variables.g,
-                                                                      c:variables.c,
-                                                                      x:variables.x,
-                                                                      y:variables.y,
-                                                                      vx:variables.vx,
-                                                                      vy:variables.vy}, {latex:true});
+              g:variables.g,
+              c:variables.c,
+              x:variables.y[0],
+              y:variables.y[1],
+              vx:variables.y[2],
+              vy:variables.y[3]}, {latex:true});
             dydt[0]= vydot({});
             } catch (err){
               //console.log(err);
