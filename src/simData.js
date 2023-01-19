@@ -4,19 +4,8 @@ export class simData {
         this.interval = interval;
     }
     
-    insert(time, theta, velocity){
-        this.data.push(new dataPoint(time, theta, velocity));
-    }
-
-    getTheta(time){
-        let dataIndex = (time/this.interval).toFixed(0);
-        //console.log(dataIndex)
-        
-            if (dataIndex > this.data.length-1) {
-            dataIndex = this.data.length-1;
-            }
-        
-        return this.data[dataIndex].theta;
+    insert(time, xdot, ydot, vxdot, vydot){
+        this.data.push(new dataPoint(time, xdot, ydot, vxdot, vydot));
     }
 
     getVelocity(time){
@@ -24,16 +13,41 @@ export class simData {
         if (dataIndex > this.data.length-1) {
             dataIndex = this.data.length-1;
             }
-        return this.data[dataIndex].velocity;
+        return this.data[dataIndex].xdot;
     }
-// 
+
+    getVelocity(time){
+        let dataIndex = (time/this.interval).toFixed(0);
+        if (dataIndex > this.data.length-1) {
+            dataIndex = this.data.length-1;
+            }
+        return this.data[dataIndex].ydot;
+    }
+
+    getVelocity(time){
+        let dataIndex = (time/this.interval).toFixed(0);
+        if (dataIndex > this.data.length-1) {
+            dataIndex = this.data.length-1;
+            }
+        return this.data[dataIndex].vxdot;
+    }
+
+    getVelocity(time){
+        let dataIndex = (time/this.interval).toFixed(0);
+        if (dataIndex > this.data.length-1) {
+            dataIndex = this.data.length-1;
+            }
+        return this.data[dataIndex].vydot;
+    }
     
 }
 
 class dataPoint {
-    constructor(time, theta, velocity){
-        this.time = time;
-        this.theta = theta;
-        this.velocity = velocity;
+    constructor(time, xdot, ydot, vxdot, vydot){
+        this.time =time;
+        this.xdot = xdot;
+        this.ydot = ydot;
+        this.vxdot = vxdot;
+        this.vydot = vydot;
     }
 }
